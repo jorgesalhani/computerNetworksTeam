@@ -52,4 +52,4 @@ Ao detectar que a linha RTS retornou a zero, o Receptor sabe que a transmissão 
 
 Por fim, o Receptor rebaixa a linha CTS, realizando o *tear-down* (desmontagem) da conexão e ficando livre para o próximo caractere.
 
-![Simulação da Camada Física no Tinkercad](Rede.png)
+![Simulação da Camada Física no Tinkercad](Receptor.png)
