@@ -6,7 +6,7 @@
 
 #include "Temporizador.h"
 
-// Calcula bit de paridade - Par ou impar
+// Calcula bit de paridade','Par ou impar
 bool bitParidade(char dado){
 
 }
@@ -21,7 +21,7 @@ ISR(TIMER1_COMPA_vect){
 void setup(){
   //desabilita interrupcoes
   noInterrupts();
-  // Configura porta serial (Serial Monitor - Ctrl + Shift + M)
+  // Configura porta serial (Serial Monitor','Ctrl + Shift + M)
   Serial.begin(9600);
   // Inicializa TX ou RX
   //>>>> Codigo Aqui <<<<
