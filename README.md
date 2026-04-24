@@ -1,5 +1,13 @@
 ##  Sobre o Projeto: O Desafio da Camada Física
 
+### Integrantes do Grupo:
+- Adhemar Molon Neto
+- Jorge Augusto Salgado Salhani
+- Laura Neri Thomaz da Silva
+
+### Vídeo produzido: 
+[Youtube - Arduino Receptor de Paridade Par](https://youtu.be/5XR75sju2yo)
+
 Este projeto foi desenvolvido como atividade prática da disciplina de **Redes de Computadores** (SSC0142). O desafio estrutural era descer ao nível do hardware e construir um protocolo de comunicação do zero, inspirando-se no clássico RS-232C, mas adaptando-o para uma arquitetura com sincronização explícita.
 
 A especificação do trabalho exigia três pilares fundamentais, que foram implementados da seguinte maneira:
