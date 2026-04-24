@@ -1,3 +1,13 @@
+// ==========================================
+// TRABALHO REALIZADO POR:
+// Adhemar Molon Neto
+// Jorge Augusto Salgado Salhani
+// Laura Neri Thomaz da Silva
+//
+// LINK DO VÍDEO DE APRESENTAÇÃO:
+// https://youtu.be/5XR75sju2yo
+// ==========================================
+
 #include "Temporizador.h" // Incluído por padronização, embora não seja estritamente necessário para o Receptor Paridade Par neste protocolo específico.
 
 // ==========================================
