@@ -6,6 +6,9 @@
 //
 // LINK DO VÍDEO DE APRESENTAÇÃO:
 // https://youtu.be/5XR75sju2yo
+//
+// REPOSITORIO GITHUB:
+// https://github.com/jorgesalhani/computerNetworksTeam
 // ==========================================
 
 #include "Temporizador.h" // Incluído por padronização, embora não seja estritamente necessário para o Receptor Paridade Par neste protocolo específico.
