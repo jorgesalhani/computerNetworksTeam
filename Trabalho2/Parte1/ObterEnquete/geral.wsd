@@ -1,0 +1,19 @@
+@startuml
+
+title Obtenção de informações
+
+actor user
+participant sistema
+database db
+
+user -> sistema : QR image
+
+sistema -> sistema : decode
+
+sistema -> db : fetch
+
+sistema <- db : [research infos]
+
+user <- sistema : [document infos]
+
+@enduml
