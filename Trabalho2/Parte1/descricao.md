@@ -2,10 +2,14 @@
 Enquete inteligente, com base em modelo de controle de estoque
 
 ## Funcionalidades
-[Leitura de QR]
 
-[Cadastrar](Cadastrar/geral.png)
+### Cadastro de nova enquete
+[Visão geral](Cadastrar/geral.png)
 
-[Obter](ObterEnquete/geral.png)
+[Fluxo completo](Cadastrar/completo.png)
 
-[Responder](Responder/geral.png)
+
+### Obter enquete
+[Visão geral](ObterEnquete/geral.png)
+
+[Fluxo completo](ObterEnquete/completo.png)

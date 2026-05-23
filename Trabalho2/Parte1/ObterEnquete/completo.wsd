@@ -1,0 +1,76 @@
+@startuml
+
+title Obter enquete\nCompleto
+
+actor user
+participant qrscan
+participant poll_manager
+database db
+
+user -> qrscan : ws/qrscan
+activate qrscan
+note right of user
+  file: b'image'
+end note
+
+alt Sem imagem
+  user <- qrscan : Falha: Imagem não informada!
+
+else QR não reconhecido
+
+  user <- qrscan : Falha: QR não reconhecido
+  deactivate qrscan
+
+else QR reconhecido
+end
+
+qrscan -> qrscan : content = decode(file)
+activate qrscan
+
+alt Conteúdo mal formatado
+  user <- qrscan : Falha: conteúdo mal formatado
+  deactivate qrscan
+
+else Conteúdo aceito
+end
+
+qrscan -> poll_manager : POST poll/{label}/label
+activate qrscan
+activate poll_manager
+note right of qrscan
+  opcode: [:|]
+  label: [|:]
+end note
+
+alt opcode not in [w, r]
+  qrscan <- poll_manager : Falha: Opcode inválido
+  deactivate poll_manager
+
+  user <- qrscan : Falha: Opcode inválido
+  deactivate qrscan
+
+else new_poll = w: VER CADASTRAR ENQUETE
+else new_poll = r
+end
+
+poll_manager -> db : GET /{label}/label
+activate db
+
+activate poll_manager
+activate qrscan
+
+poll_manager <- db : [poll]
+deactivate db
+
+qrscan <- poll_manager : [poll]
+deactivate poll_manager
+
+user <- qrscan : [poll]
+deactivate qrscan
+
+
+
+
+
+
+@enduml
