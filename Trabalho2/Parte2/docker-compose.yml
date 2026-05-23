@@ -1,0 +1,17 @@
+services:
+  qr-scan:
+    image: qr-scan:latest
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - container_network
+
+networks:
+  container_network:
+    name: container_network
+    driver: bridge
+    external: true
