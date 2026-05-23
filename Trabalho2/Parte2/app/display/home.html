@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html>
+  <head><title>QR Scanner</title></head>
+    <body>
+        <h2>QR Code Live Camera Scanner</h2>
+        <video id="video" width="400" height="300" autoplay></video>
+        <button id="capture">Scan QR</button>
+        <p><strong>Result:</strong> <span id="result">None</span></p>
+
+        <script>
+            const video = document.getElementById('video');
+            const button = document.getElementById('capture');
+            const resultSpan = document.getElementById('result');
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => { video.srcObject = stream; });
+
+            button.addEventListener('click', () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                canvas.toBlob(blob => {
+                    const formData = new FormData();
+                    formData.append('file', blob, 'screenshot.jpg');
+
+                    fetch('/api/v1/scan-qr', { method: 'POST', body: formData })
+                        .then(res => res.json())
+                        .then(data => {
+                            if(data.qr_found) {
+                                resultSpan.innerText = data.data;
+                            } else {
+                                resultSpan.innerText = "No QR code detected. Try again.";
+                            }
+                        });
+                }, 'image/jpeg');
+            });
+        </script>
+    </body>
+</html>

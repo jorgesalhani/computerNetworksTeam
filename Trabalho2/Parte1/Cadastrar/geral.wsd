@@ -1,6 +1,6 @@
 @startuml
 
-title Obtenção de informações
+title Cadastro de nova enquete\nVisão geral
 
 actor user
 participant sistema
