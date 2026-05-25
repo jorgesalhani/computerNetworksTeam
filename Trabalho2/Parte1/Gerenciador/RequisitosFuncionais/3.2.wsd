@@ -1,0 +1,36 @@
+@startuml
+
+title Ligar iluminação e ar-condicionado
+
+control sensor
+participant gerenciador
+control atuador
+
+sensor -> gerenciador : turn_off()
+activate gerenciador
+note over of sensor
+  DATA:
+  - sala_vazia: bool
+end note
+
+alt sala_vazia = True
+  gerenciador -> gerenciador : [Ok!]
+  deactivate gerenciador
+
+else sala_vazia = False
+end
+
+gerenciador -> atuador : turn_on()
+activate gerenciador
+activate atuador
+note right of atuador
+DATA:
+- modo_iluminacao = 1
+- modo_ar_condicionado = 1
+end note
+
+gerenciador <- atuador : [Ok!]
+deactivate atuador
+deactivate gerenciador
+
+@enduml

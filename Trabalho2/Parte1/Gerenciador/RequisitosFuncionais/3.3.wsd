@@ -1,0 +1,48 @@
+@startuml
+
+title Desligar iluminação, projetor e\n ar-condicionado
+
+control sensor
+participant gerenciador
+control atuador
+
+sensor -> gerenciador : turn_off()
+activate gerenciador
+note over of sensor
+  DATA:
+  - sala_vazia: bool
+end note
+
+alt sala_vazia = False
+  gerenciador -> gerenciador : reset_countdown()
+  note right of gerenciador
+    last_detection = now()
+  end note
+  
+  gerenciador -> gerenciador : [Ok!]
+
+else sala_vazia = True
+end
+
+alt last_detection - now() < 15min
+  gerenciador -> gerenciador : [Ok!]
+  deactivate gerenciador
+else >= 15 min
+end
+gerenciador -> atuador : turn_off()
+activate atuador
+activate gerenciador
+note right of atuador
+Para todo atuador, modo = 0
+
+DATA:
+- modo_iluminacao = 0
+- modo_projetor = 0
+- modo_ar_condicionado = 0
+end note
+
+gerenciador <- atuador : [Ok!]
+deactivate atuador
+deactivate gerenciador
+
+@enduml
