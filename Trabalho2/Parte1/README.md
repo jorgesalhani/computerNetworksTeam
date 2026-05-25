@@ -3,9 +3,9 @@ Sala de aula inteligente
 
 ## Funcionalidades
 
-[Atuadores]()
+[Atuadores](https://github.com/jorgesalhani/computerNetworksTeam/blob/main/Trabalho2/Parte1/Atuadores/README.md)
 
-[Sensores]()
+[Sensores](https://github.com/jorgesalhani/computerNetworksTeam/blob/main/Trabalho2/Parte1/Sensores/README.md)
 
-[Gerenciador]()
+[Gerenciador](https://github.com/jorgesalhani/computerNetworksTeam/blob/main/Trabalho2/Parte1/Gerenciador/README.md)
 
