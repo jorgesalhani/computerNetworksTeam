@@ -15,9 +15,16 @@ end note
 
 gerenciador -> db : GET /attend-list?data-consulta={data_consulta}
 activate db
-note right of db
-  SELECT * FROM at
+note right of gerenciador
+  SELECT * FROM attend_list
+  WHERE data_hora::DATE = $data_consulta
 end note
+
+gerenciador <- db : [attend_list]
+deactivate db
+
+gerenciador -> gerenciador : show_attend_list()
+deactivate gerenciador
 
 
 @enduml
