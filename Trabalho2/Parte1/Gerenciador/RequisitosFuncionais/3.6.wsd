@@ -1,0 +1,30 @@
+@startuml
+
+title Acender as luzes e desligar projetor
+
+control sensor
+participant gerenciador
+database db
+
+sensor -> gerenciador : attend_list()
+activate gerenciador
+note over sensor
+  DATA:
+  - nome_aluna
+  - numero_aluna
+end note
+
+gerenciador -> db : new_student
+activate db
+note right of db
+  INSERT INTO students
+  (nome_aluna, numero_aluna)
+  VALUES 
+  ($nome_aluna, $numero_aluna)
+end note
+
+gerenciador <- db : [Ok!]
+deactivate db
+deactivate gerenciador
+
+@enduml

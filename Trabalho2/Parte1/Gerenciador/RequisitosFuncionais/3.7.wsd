@@ -1,38 +1,23 @@
 @startuml
 
-title Desligar iluminação, projetor e\n ar-condicionado
+title Acender as luzes e desligar projetor
 
-control sensor
 participant gerenciador
 control atuador
 
-sensor -> gerenciador : no_people_here()
-activate gerenciador
-note over of sensor
-  DATA:
-  - sala_vazia: 1
-end note
-
-alt sala_vazia = False
-  gerenciador -> gerenciador : reset_countdown()
-  note right of gerenciador
-    last_detection = now()
-  end note
-  
-  gerenciador -> gerenciador : [Ok!]
-
-else sala_vazia = True
-end
-
-alt last_detection - now() < 15min
-  gerenciador -> gerenciador : [Ok!]
+alt now() < 23h
+  gerenciador -> gerenciador : null
+  activate gerenciador
   deactivate gerenciador
-else >= 15 min
+
+else now() >= 23h
 end
+
+gerenciador -> gerenciador: midnight_gospel()
+activate gerenciador
 
 gerenciador -> atuador : lights_off()
 activate atuador
-activate gerenciador
 note right of atuador
   DATA:
   - modo_iluminacao = 0
@@ -61,5 +46,6 @@ end note
 gerenciador <- atuador : [Ok!]
 deactivate atuador
 deactivate gerenciador
+
 
 @enduml
