@@ -1,0 +1,23 @@
+@startuml
+
+title Obter lista de alunas
+
+actor cliente
+participant gerenciador
+database db
+
+cliente -> gerenciador : check_attend_list()
+activate gerenciador
+note over cliente
+  DATA:
+  - data_consulta: yyyy-mm-dd
+end note
+
+gerenciador -> db : GET /attend-list?data-consulta={data_consulta}
+activate db
+note right of db
+  SELECT * FROM at
+end note
+
+
+@enduml

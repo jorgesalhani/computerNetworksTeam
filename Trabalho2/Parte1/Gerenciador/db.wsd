@@ -1,0 +1,10 @@
+@startuml
+
+title Database: Lista de presença
+
+entity "attend_list" {
+  +<<PK>> numero_aluna: int
+  +<<PK>> data_hora: datetime
+  --
+  nome_aluna: varchar
+}

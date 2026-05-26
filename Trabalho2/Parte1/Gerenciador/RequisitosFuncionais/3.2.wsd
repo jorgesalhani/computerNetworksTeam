@@ -6,7 +6,7 @@ control sensor
 participant gerenciador
 control atuador
 
-sensor -> gerenciador : turn_off()
+sensor -> gerenciador : people_arrive()
 activate gerenciador
 note over of sensor
   DATA:
@@ -20,13 +20,22 @@ alt sala_vazia = True
 else sala_vazia = False
 end
 
-gerenciador -> atuador : turn_on()
+gerenciador -> atuador : lights_on()
 activate gerenciador
 activate atuador
 note right of atuador
-DATA:
-- modo_iluminacao = 1
-- modo_ar_condicionado = 1
+  DATA:
+  - modo_iluminacao = 1
+end note
+
+gerenciador <- atuador : [Ok!]
+deactivate atuador
+
+gerenciador -> atuador : air_cond_on()
+activate atuador
+note right of atuador
+  DATA:
+  - modo_ar_condicionado = 1
 end note
 
 gerenciador <- atuador : [Ok!]
