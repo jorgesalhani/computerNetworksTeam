@@ -1,16 +1,20 @@
-## Sala de aula inteligente - Parte 2
+# Sala de aula inteligente - Parte 2
 
-Esta parte do trabalho esta organizada em dois blocos:
+Trabalho pratico da disciplina SSC0142 - Redes de Computadores.
 
-1. `smartroom/`: implementacao principal do protocolo de aplicacao via sockets
-   TCP, usando mensagens JSON delimitadas por quebra de linha.
-2. `app/`: prototipo FastAPI de leitura de QR Code. Ele fica preservado como
-   apoio opcional ao leitor de cartao, mas nao e dependencia do fluxo principal
-   exigido pelo trabalho.
+A aplicacao implementa um protocolo de camada de aplicacao para uma sala de
+aula inteligente. O nucleo da entrega usa sockets TCP, processos separados e
+mensagens JSON delimitadas por quebra de linha.
+
+O prototipo FastAPI de leitura de QR Code foi mantido em `app/` como apoio
+opcional ao leitor de cartao, mas nao e necessario para executar o fluxo
+principal do trabalho.
 
 ## Protocolo
 
-O protocolo padronizado e `SMARTROOM/1.0`. Toda mensagem tem o header:
+O protocolo da aplicacao e `SMARTROOM/1.0`.
+
+Toda mensagem enviada por TCP segue este formato:
 
 ```json
 {
@@ -24,93 +28,110 @@ O protocolo padronizado e `SMARTROOM/1.0`. Toda mensagem tem o header:
 }
 ```
 
-A documentacao completa esta em
+As mensagens sao codificadas em JSON e terminadas por `\n`.
+
+Tipos de mensagem implementados:
+
+- `HELLO`
+- `ACK`
+- `ERROR`
+- `PRESENCE_UPDATE`
+- `STUDENT_CHECKIN`
+- `PROJECTOR_SWITCH`
+- `ACTUATOR_COMMAND`
+- `ATTENDANCE_REQUEST`
+- `ATTENDANCE_RESPONSE`
+
+A especificacao completa esta em
 [`smartroom/docs/protocolo.md`](smartroom/docs/protocolo.md).
 
-## Diagramas .wsd
+## Componentes
 
-Os arquivos `.wsd` da Parte 1 continuam sendo documentacao de fluxo e regra de
-negocio. Eles nao devem ser implementados como nomes literais de mensagem.
+Gerenciador:
 
-A implementacao deve usar sempre as mensagens tecnicas do protocolo
-`SMARTROOM/1.0`: `HELLO`, `ACK`, `ERROR`, `PRESENCE_UPDATE`,
-`STUDENT_CHECKIN`, `PROJECTOR_SWITCH`, `ACTUATOR_COMMAND`,
-`ATTENDANCE_REQUEST` e `ATTENDANCE_RESPONSE`.
+- `smartroom/manager/gerenciador.py`
 
-O mapeamento entre os nomes conceituais dos diagramas e as mensagens reais esta
-descrito em [`smartroom/docs/protocolo.md`](smartroom/docs/protocolo.md).
+Sensores:
 
-## Estado atual da implementacao
+- `smartroom/sensors/sensor_presenca.py`
+- `smartroom/sensors/leitor_cartao.py`
+- `smartroom/sensors/chave_projetor.py`
 
-Blocos criados:
+Atuadores:
 
-- constantes do protocolo;
-- construcao e validacao de mensagens;
-- envio e recebimento de JSON por TCP com delimitador `\n`;
-- documentacao do protocolo;
-- Gerenciador TCP minimo com registro `HELLO`/`ACK`;
-- atuadores de iluminacao, projetor e ar-condicionado conectando via sockets.
-- sensor de presenca enviando `PRESENCE_UPDATE`;
-- regra de presenca detectada ligando iluminacao e ar-condicionado;
-- regra de ausencia prolongada desligando iluminacao, projetor e
-  ar-condicionado.
-- chave ON/OFF do projetor controlando iluminacao e projetor.
-- leitor de cartao registrando presenca de alunos sem duplicidade.
-- cliente/professor consultando a lista de presenca.
-- desligamento geral das 23h com demonstracao rapida em modo demo.
+- `smartroom/actuators/atuador_iluminacao.py`
+- `smartroom/actuators/atuador_projetor.py`
+- `smartroom/actuators/atuador_ar_condicionado.py`
 
-Os proximos blocos tratarao a documentacao final e os ajustes de demonstracao.
+Cliente/professor:
 
-## Executar processos atuais
+- `smartroom/client/cliente_professor.py`
 
-A partir da pasta `Trabalho2/Parte2`, execute:
+Codigo compartilhado:
+
+- `smartroom/protocol/constants.py`
+- `smartroom/protocol/message.py`
+- `smartroom/protocol/socket_utils.py`
+- `smartroom/components/base_client.py`
+
+## Requisitos atendidos
+
+Todos os sensores e atuadores possuem identificador unico e se registram no
+Gerenciador com `HELLO`/`ACK`.
+
+O sensor de presenca envia `PRESENCE_UPDATE`. Quando ha pessoas na sala, o
+Gerenciador liga iluminacao e ar-condicionado. Quando a sala fica vazia, o
+Gerenciador inicia o controle de ausencia e desliga iluminacao, projetor e
+ar-condicionado apos o limite configurado.
+
+A chave do projetor envia `PROJECTOR_SWITCH`. Quando ligada, o Gerenciador
+apaga as luzes e liga o projetor. Quando desligada, liga as luzes e desliga o
+projetor.
+
+O leitor de cartao envia `STUDENT_CHECKIN` com numero e nome do aluno. O
+Gerenciador armazena a lista de presenca em memoria e evita duplicidade pelo
+numero do aluno.
+
+O cliente/professor envia `ATTENDANCE_REQUEST` e recebe
+`ATTENDANCE_RESPONSE` com a lista de alunos presentes.
+
+O Gerenciador implementa a regra de desligamento geral das 23h. Em modo demo, a
+mesma regra e simulada apos poucos segundos para facilitar a apresentacao.
+
+## Ambiente
+
+Ambiente usado no desenvolvimento:
+
+- Sistema operacional: Microsoft Windows 11 Home Single Language
+- Versao do Windows: 10.0.26200
+- Python: 3.13.2
+
+Dependencias do nucleo por sockets:
+
+- nenhuma dependencia externa; usa apenas a biblioteca padrao do Python.
+
+Dependencias opcionais do prototipo QR:
+
+- estao listadas em `requirements.txt`;
+- o Dockerfile ja instala a biblioteca `libzbar0` necessaria para o leitor QR.
+
+## Como executar
+
+Abra um terminal na pasta `Trabalho2/Parte2` antes de rodar os comandos.
+
+Gerenciador:
 
 ```sh
 python -m smartroom.manager.gerenciador
 ```
 
-Tambem e possivel configurar host e porta:
-
-```sh
-python -m smartroom.manager.gerenciador --host 127.0.0.1 --port 5050
-```
-
-Para testar comandos `ON/OFF` antes dos sensores estarem prontos, use o modo
-manual:
-
-```sh
-python -m smartroom.manager.gerenciador --manual
-```
-
-Para demonstracao, use o modo demo. Nele, a ausencia prolongada usa 15 segundos
-em vez de 15 minutos, e o desligamento geral das 23h e simulado 20 segundos apos
-o inicio do Gerenciador:
-
-```sh
-python -m smartroom.manager.gerenciador --demo
-```
-
-Os modos podem ser combinados:
+Gerenciador com modo manual e modo demo:
 
 ```sh
 python -m smartroom.manager.gerenciador --manual --demo
 ```
 
-Com o modo manual ativo, o terminal do Gerenciador aceita:
-
-```text
-list
-light on
-light off
-projector on
-projector off
-ac on
-ac off
-shutdown
-quit
-```
-
-Em outros terminais, execute os atuadores:
+Atuadores, cada um em um terminal separado:
 
 ```sh
 python -m smartroom.actuators.atuador_iluminacao
@@ -124,121 +145,101 @@ python -m smartroom.actuators.atuador_projetor
 python -m smartroom.actuators.atuador_ar_condicionado
 ```
 
-Cada atuador envia `HELLO`, recebe `ACK` e fica aguardando `ACTUATOR_COMMAND`.
-O modo manual do Gerenciador permite enviar `ACTUATOR_COMMAND` para testar os
-estados `ON/OFF`. O envio automatico sera implementado junto com as regras dos
-sensores nos proximos blocos.
-
-Para testar a regra inicial de presenca, mantenha o Gerenciador, o atuador de
-iluminacao e o atuador do ar-condicionado em execucao. Em outro terminal, rode:
+Sensores, cada um em um terminal separado:
 
 ```sh
 python -m smartroom.sensors.sensor_presenca
 ```
 
-No menu do sensor, escolha:
-
-```text
-1 - Enviar presenca detectada
-```
-
-O Gerenciador deve enviar `ACTUATOR_COMMAND` com `command=ON` para
-`ACT_LIGHT_01` e `ACT_AC_01`.
-
-Para testar ausencia prolongada em modo demo, rode o Gerenciador com `--demo` e
-escolha no sensor:
-
-```text
-2 - Enviar sala vazia
-```
-
-Apos 15 segundos sem nova presenca, o Gerenciador deve enviar
-`ACTUATOR_COMMAND` com `command=OFF` para `ACT_LIGHT_01`, `ACT_PROJECTOR_01` e
-`ACT_AC_01`.
-
-Para demonstrar a regra das 23h, rode o Gerenciador com `--demo`, conecte os
-atuadores e ligue algum equipamento pelo modo manual ou pelos sensores. Apos 20
-segundos do inicio do Gerenciador, ele deve enviar `ACTUATOR_COMMAND` com
-`command=OFF` para os tres atuadores, usando o motivo `scheduled_shutdown`.
-
-Se estiver usando `--manual`, tambem e possivel disparar o mesmo desligamento
-geral imediatamente digitando:
-
-```text
-shutdown
-```
-
-Para testar a chave do projetor, mantenha o Gerenciador, o atuador de
-iluminacao e o atuador do projetor em execucao. Em outro terminal, rode:
-
 ```sh
 python -m smartroom.sensors.chave_projetor
 ```
-
-No menu da chave, escolha:
-
-```text
-1 - Ligar chave do projetor
-```
-
-O Gerenciador deve apagar a iluminacao (`ACT_LIGHT_01 OFF`) e ligar o projetor
-(`ACT_PROJECTOR_01 ON`).
-
-Depois escolha:
-
-```text
-2 - Desligar chave do projetor
-```
-
-O Gerenciador deve ligar a iluminacao (`ACT_LIGHT_01 ON`) e desligar o projetor
-(`ACT_PROJECTOR_01 OFF`).
-
-Para testar o leitor de cartao, rode em outro terminal:
 
 ```sh
 python -m smartroom.sensors.leitor_cartao
 ```
 
-No menu do leitor, escolha:
-
-```text
-2 - Enviar 3 alunos de demonstracao
-```
-
-O Gerenciador deve registrar os alunos `001`, `002` e `003`. Se o mesmo aluno
-for enviado novamente, o Gerenciador responde `student_already_registered` e nao
-duplica o registro.
-
-Para testar o cliente/professor depois de registrar alunos, rode:
+Cliente/professor:
 
 ```sh
 python -m smartroom.client.cliente_professor
 ```
 
-No menu do cliente, escolha:
+## Ordem recomendada
+
+1. Iniciar o Gerenciador com `--manual --demo`.
+2. Iniciar os tres atuadores.
+3. Iniciar o sensor de presenca.
+4. Enviar presenca detectada pelo sensor.
+5. Iniciar a chave do projetor.
+6. Ligar e desligar a chave do projetor.
+7. Iniciar o leitor de cartao.
+8. Enviar os 3 alunos de demonstracao.
+9. Iniciar o cliente/professor.
+10. Solicitar a lista de presenca.
+11. Enviar sala vazia pelo sensor de presenca.
+12. Aguardar o desligamento por ausencia em modo demo.
+13. Usar `shutdown` no Gerenciador ou aguardar o desligamento geral demo.
+
+## Modo manual do Gerenciador
+
+Com `--manual`, o terminal do Gerenciador aceita:
 
 ```text
-1 - Solicitar lista de presenca
+list
+light on
+light off
+projector on
+projector off
+ac on
+ac off
+shutdown
+quit
 ```
 
-O Gerenciador deve responder com `ATTENDANCE_RESPONSE`, e o cliente deve
-imprimir os alunos registrados.
+Esses comandos sao uteis para testar os atuadores antes ou durante a
+demonstracao.
+
+## Modo demo
+
+Com `--demo`:
+
+- ausencia prolongada usa 15 segundos no lugar de 15 minutos;
+- desligamento geral das 23h e simulado 20 segundos apos o inicio do
+  Gerenciador.
+
+O modo demo nao muda o protocolo. Ele altera apenas os tempos para facilitar a
+gravacao.
+
+## Roteiro de demonstracao
+
+O roteiro curto de apresentacao esta em
+[`smartroom/docs/demonstracao.md`](smartroom/docs/demonstracao.md).
 
 ## Prototipo QR opcional
 
-O scanner de QR Code atual continua disponivel:
+O scanner de QR Code atual continua disponivel em `app/`.
 
-1. Ter Docker Desktop instalado.
-2. Subir o servico:
+Para executar:
 
 ```sh
 docker compose up --build
 ```
 
-3. Acessar:
+Acesse:
 
 ```sh
 localhost:8000
 ```
 
-4. Exibir QR e pressionar "scan".
+O QR pode conter um JSON como:
+
+```json
+{
+  "student_number": "001",
+  "student_name": "Aluno 1"
+}
+```
+
+Esse fluxo e opcional. A demonstracao principal pode ser feita inteiramente pelo
+leitor de cartao via terminal.
