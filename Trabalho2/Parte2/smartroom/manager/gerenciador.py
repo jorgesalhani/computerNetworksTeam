@@ -19,9 +19,13 @@ if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from smartroom.protocol.constants import (  # noqa: E402
+    ACT_AC_ID,
+    ACT_LIGHT_ID,
+    ACT_PROJECTOR_ID,
     DEFAULT_HOST,
     DEFAULT_PORT,
     MANAGER_ID,
+    MESSAGE_ACTUATOR_COMMAND,
     MESSAGE_ACK,
     MESSAGE_ERROR,
     MESSAGE_HELLO,
@@ -50,9 +54,10 @@ class ConnectedComponent:
 class SmartRoomManager:
     """Servidor TCP principal dos componentes da sala inteligente."""
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, manual_mode: bool = False):
         self.host = host
         self.port = port
+        self.manual_mode = manual_mode
         self.components: dict[str, ConnectedComponent] = {}
         self.components_lock = threading.Lock()
         self.stop_event = threading.Event()
@@ -69,6 +74,9 @@ class SmartRoomManager:
             self.log(f"Gerenciador escutando em {self.host}:{self.port}")
 
             try:
+                if self.manual_mode:
+                    self.start_manual_command_thread()
+
                 while not self.stop_event.is_set():
                     try:
                         client_socket, address = server_socket.accept()
@@ -86,6 +94,103 @@ class SmartRoomManager:
             finally:
                 self.stop_event.set()
                 self.close_all_components()
+
+    def start_manual_command_thread(self) -> None:
+        """Inicia uma thread para comandos manuais de atuadores."""
+
+        thread = threading.Thread(target=self.manual_command_loop, daemon=True)
+        thread.start()
+
+    def manual_command_loop(self) -> None:
+        """Permite enviar ACTUATOR_COMMAND pelo terminal do Gerenciador."""
+
+        self.log("Modo manual ativo para comandos de atuadores")
+        self.log("Digite: light on, light off, projector on, projector off, ac on, ac off")
+        self.log("Digite: list para ver componentes conectados ou quit para encerrar")
+
+        command_map = {
+            "light": ACT_LIGHT_ID,
+            "projector": ACT_PROJECTOR_ID,
+            "ac": ACT_AC_ID,
+        }
+
+        while not self.stop_event.is_set():
+            try:
+                user_input = input("manager> ").strip().lower()
+            except EOFError:
+                self.stop_event.set()
+                return
+
+            if not user_input:
+                continue
+
+            if user_input in {"quit", "exit", "sair"}:
+                self.stop_event.set()
+                return
+
+            if user_input == "list":
+                self.list_registered_components()
+                continue
+
+            parts = user_input.split()
+            if len(parts) != 2 or parts[0] not in command_map or parts[1] not in {"on", "off"}:
+                self.log("Comando invalido. Use, por exemplo: light on")
+                continue
+
+            actuator_id = command_map[parts[0]]
+            command = parts[1].upper()
+            self.send_actuator_command(
+                actuator_id=actuator_id,
+                command=command,
+                reason="manual_command",
+            )
+
+    def list_registered_components(self) -> None:
+        """Imprime os componentes registrados no momento."""
+
+        with self.components_lock:
+            components = list(self.components.values())
+
+        if not components:
+            self.log("Nenhum componente conectado")
+            return
+
+        for component in components:
+            self.log(
+                "Conectado: "
+                f"{component.source_id} ({component.source_type}/{component.component_role})"
+            )
+
+    def send_actuator_command(self, actuator_id: str, command: str, reason: str) -> bool:
+        """Envia ACTUATOR_COMMAND para um atuador registrado."""
+
+        with self.components_lock:
+            component = self.components.get(actuator_id)
+
+        if component is None:
+            self.log(f"Atuador {actuator_id} nao esta conectado")
+            return False
+
+        message = build_message(
+            message_type=MESSAGE_ACTUATOR_COMMAND,
+            source_id=MANAGER_ID,
+            source_type=SOURCE_TYPE_MANAGER,
+            target_id=actuator_id,
+            payload={
+                "actuator_id": actuator_id,
+                "command": command,
+                "reason": reason,
+            },
+        )
+        try:
+            self.send_and_log(component.sock, message)
+        except (OSError, ProtocolSocketError) as exc:
+            self.log(f"Falha ao enviar comando para {actuator_id}: {exc}")
+            self.unregister_component(actuator_id)
+            self.close_socket(component.sock)
+            return False
+
+        return True
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]) -> None:
         """Trata uma conexao TCP."""
@@ -113,6 +218,10 @@ class SmartRoomManager:
             while not self.stop_event.is_set():
                 message = reader.receive()
                 self.log_message("RECEBIDA", message)
+                if message["message_type"] == MESSAGE_ACK:
+                    self.log(f"ACK recebido de {message['source_id']}: {message['payload']}")
+                    continue
+
                 self.send_error(
                     client_socket,
                     target_id=message["source_id"],
@@ -255,12 +364,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Gerenciador SMARTROOM/1.0")
     parser.add_argument("--host", default=DEFAULT_HOST, help="host TCP do Gerenciador")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="porta TCP do Gerenciador")
+    parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="habilita menu manual para enviar comandos aos atuadores",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    manager = SmartRoomManager(host=args.host, port=args.port)
+    manager = SmartRoomManager(host=args.host, port=args.port, manual_mode=args.manual)
     manager.start()
 
 

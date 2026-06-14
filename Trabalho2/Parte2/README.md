@@ -68,6 +68,26 @@ Tambem e possivel configurar host e porta:
 python -m smartroom.manager.gerenciador --host 127.0.0.1 --port 5050
 ```
 
+Para testar comandos `ON/OFF` antes dos sensores estarem prontos, use o modo
+manual:
+
+```sh
+python -m smartroom.manager.gerenciador --manual
+```
+
+Com o modo manual ativo, o terminal do Gerenciador aceita:
+
+```text
+list
+light on
+light off
+projector on
+projector off
+ac on
+ac off
+quit
+```
+
 Em outros terminais, execute os atuadores:
 
 ```sh
@@ -83,8 +103,9 @@ python -m smartroom.actuators.atuador_ar_condicionado
 ```
 
 Cada atuador envia `HELLO`, recebe `ACK` e fica aguardando `ACTUATOR_COMMAND`.
-Neste bloco, o Gerenciador ainda nao envia comandos automaticamente; isso sera
-implementado junto com as regras dos sensores nos proximos blocos.
+O modo manual do Gerenciador permite enviar `ACTUATOR_COMMAND` para testar os
+estados `ON/OFF`. O envio automatico sera implementado junto com as regras dos
+sensores nos proximos blocos.
 
 ## Prototipo QR opcional
 
