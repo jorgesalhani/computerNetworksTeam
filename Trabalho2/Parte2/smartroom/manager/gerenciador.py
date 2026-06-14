@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ from smartroom.protocol.constants import (  # noqa: E402
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEMO_ABSENCE_TIMEOUT_SECONDS,
+    DEMO_SCHEDULED_SHUTDOWN_SECONDS,
     MANAGER_ID,
     MESSAGE_ACTUATOR_COMMAND,
     MESSAGE_ACK,
@@ -37,6 +39,7 @@ from smartroom.protocol.constants import (  # noqa: E402
     MESSAGE_PRESENCE_UPDATE,
     MESSAGE_PROJECTOR_SWITCH,
     MESSAGE_STUDENT_CHECKIN,
+    SCHEDULED_SHUTDOWN_CHECK_INTERVAL_SECONDS,
     SOURCE_TYPE_MANAGER,
 )
 from smartroom.protocol.message import build_message  # noqa: E402
@@ -91,6 +94,10 @@ class SmartRoomManager:
         self.absence_started_at: float | None = None
         self.absence_timer: threading.Timer | None = None
         self.absence_lock = threading.Lock()
+        self.scheduled_shutdown_timer: threading.Timer | None = None
+        self.scheduled_shutdown_last_date: date | None = None
+        self.scheduled_shutdown_check_interval_seconds = SCHEDULED_SHUTDOWN_CHECK_INTERVAL_SECONDS
+        self.demo_scheduled_shutdown_seconds = DEMO_SCHEDULED_SHUTDOWN_SECONDS
         self.attendance: dict[str, AttendanceRecord] = {}
         self.attendance_lock = threading.Lock()
         self.stop_event = threading.Event()
@@ -115,6 +122,8 @@ class SmartRoomManager:
                 if self.manual_mode:
                     self.start_manual_command_thread()
 
+                self.start_scheduled_shutdown_monitor()
+
                 while not self.stop_event.is_set():
                     try:
                         client_socket, address = server_socket.accept()
@@ -132,6 +141,7 @@ class SmartRoomManager:
             finally:
                 self.stop_event.set()
                 self.cancel_absence_timer()
+                self.cancel_scheduled_shutdown_timer()
                 self.close_all_components()
 
     def start_manual_command_thread(self) -> None:
@@ -145,7 +155,7 @@ class SmartRoomManager:
 
         self.log("Modo manual ativo para comandos de atuadores")
         self.log("Digite: light on, light off, projector on, projector off, ac on, ac off")
-        self.log("Digite: list para ver componentes conectados ou quit para encerrar")
+        self.log("Digite: shutdown para desligamento geral, list para conectados ou quit para encerrar")
 
         command_map = {
             "light": ACT_LIGHT_ID,
@@ -169,6 +179,10 @@ class SmartRoomManager:
 
             if user_input == "list":
                 self.list_registered_components()
+                continue
+
+            if user_input == "shutdown":
+                self.shutdown_all_at_23h()
                 continue
 
             parts = user_input.split()
@@ -230,6 +244,51 @@ class SmartRoomManager:
             return False
 
         return True
+
+    def start_scheduled_shutdown_monitor(self) -> None:
+        """Inicia a regra de desligamento geral das 23h."""
+
+        if self.demo_mode:
+            self.scheduled_shutdown_timer = threading.Timer(
+                self.demo_scheduled_shutdown_seconds,
+                self.shutdown_all_at_23h,
+            )
+            self.scheduled_shutdown_timer.daemon = True
+            self.scheduled_shutdown_timer.start()
+            self.log(
+                "Modo demo: desligamento geral agendado para "
+                f"{self.demo_scheduled_shutdown_seconds} segundos"
+            )
+            return
+
+        thread = threading.Thread(target=self.scheduled_shutdown_loop, daemon=True)
+        thread.start()
+
+    def scheduled_shutdown_loop(self) -> None:
+        """Verifica periodicamente se chegou o horario de desligamento geral."""
+
+        while not self.stop_event.is_set():
+            now = datetime.now()
+            if now.hour >= 23 and self.scheduled_shutdown_last_date != now.date():
+                self.shutdown_all_at_23h()
+                self.scheduled_shutdown_last_date = now.date()
+
+            self.stop_event.wait(self.scheduled_shutdown_check_interval_seconds)
+
+    def cancel_scheduled_shutdown_timer(self) -> None:
+        """Cancela o timer de desligamento geral em modo demo."""
+
+        if self.scheduled_shutdown_timer is not None:
+            self.scheduled_shutdown_timer.cancel()
+            self.scheduled_shutdown_timer = None
+
+    def shutdown_all_at_23h(self) -> None:
+        """Desliga todos os equipamentos pela regra das 23h."""
+
+        self.log("Desligamento geral das 23h: desligando equipamentos")
+        self.send_actuator_command(ACT_LIGHT_ID, "OFF", "scheduled_shutdown")
+        self.send_actuator_command(ACT_PROJECTOR_ID, "OFF", "scheduled_shutdown")
+        self.send_actuator_command(ACT_AC_ID, "OFF", "scheduled_shutdown")
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]) -> None:
         """Trata uma conexao TCP."""
@@ -631,7 +690,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--demo",
         action="store_true",
-        help="usa 15 segundos para ausencia prolongada em vez de 15 minutos",
+        help="usa tempos curtos para demonstrar ausencia prolongada e desligamento geral",
     )
     return parser.parse_args()
 

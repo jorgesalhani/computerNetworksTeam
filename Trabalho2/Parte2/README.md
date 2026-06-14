@@ -57,9 +57,9 @@ Blocos criados:
 - chave ON/OFF do projetor controlando iluminacao e projetor.
 - leitor de cartao registrando presenca de alunos sem duplicidade.
 - cliente/professor consultando a lista de presenca.
+- desligamento geral das 23h com demonstracao rapida em modo demo.
 
-Os proximos blocos tratarao o desligamento geral as 23h e a documentacao final
-da demonstracao.
+Os proximos blocos tratarao a documentacao final e os ajustes de demonstracao.
 
 ## Executar processos atuais
 
@@ -83,7 +83,8 @@ python -m smartroom.manager.gerenciador --manual
 ```
 
 Para demonstracao, use o modo demo. Nele, a ausencia prolongada usa 15 segundos
-em vez de 15 minutos:
+em vez de 15 minutos, e o desligamento geral das 23h e simulado 20 segundos apos
+o inicio do Gerenciador:
 
 ```sh
 python -m smartroom.manager.gerenciador --demo
@@ -105,6 +106,7 @@ projector on
 projector off
 ac on
 ac off
+shutdown
 quit
 ```
 
@@ -153,6 +155,18 @@ escolha no sensor:
 Apos 15 segundos sem nova presenca, o Gerenciador deve enviar
 `ACTUATOR_COMMAND` com `command=OFF` para `ACT_LIGHT_01`, `ACT_PROJECTOR_01` e
 `ACT_AC_01`.
+
+Para demonstrar a regra das 23h, rode o Gerenciador com `--demo`, conecte os
+atuadores e ligue algum equipamento pelo modo manual ou pelos sensores. Apos 20
+segundos do inicio do Gerenciador, ele deve enviar `ACTUATOR_COMMAND` com
+`command=OFF` para os tres atuadores, usando o motivo `scheduled_shutdown`.
+
+Se estiver usando `--manual`, tambem e possivel disparar o mesmo desligamento
+geral imediatamente digitando:
+
+```text
+shutdown
+```
 
 Para testar a chave do projetor, mantenha o Gerenciador, o atuador de
 iluminacao e o atuador do projetor em execucao. Em outro terminal, rode:
