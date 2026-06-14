@@ -33,6 +33,7 @@ from smartroom.protocol.constants import (  # noqa: E402
     MESSAGE_ERROR,
     MESSAGE_HELLO,
     MESSAGE_PRESENCE_UPDATE,
+    MESSAGE_PROJECTOR_SWITCH,
     SOURCE_TYPE_MANAGER,
 )
 from smartroom.protocol.message import build_message  # noqa: E402
@@ -273,6 +274,10 @@ class SmartRoomManager:
             self.handle_presence_update(message, client_socket)
             return
 
+        if message_type == MESSAGE_PROJECTOR_SWITCH:
+            self.handle_projector_switch(message, client_socket)
+            return
+
         self.send_error(
             client_socket,
             target_id=message["source_id"],
@@ -312,6 +317,41 @@ class SmartRoomManager:
             payload={
                 "status": "presence_update_received",
                 "presence_detected": presence_detected,
+            },
+        )
+        self.send_and_log(client_socket, ack_message)
+
+    def handle_projector_switch(self, message: dict[str, Any], client_socket: socket.socket) -> None:
+        """Aplica a regra da chave ON/OFF do projetor."""
+
+        payload = message["payload"]
+        projector_switch_on = payload.get("projector_switch_on")
+        if not isinstance(projector_switch_on, bool):
+            self.send_error(
+                client_socket,
+                target_id=message["source_id"],
+                error_code="INVALID_PAYLOAD",
+                details="payload.projector_switch_on deve ser booleano",
+            )
+            return
+
+        if projector_switch_on:
+            self.log("Chave do projetor ligada: apagando luzes e ligando projetor")
+            self.send_actuator_command(ACT_LIGHT_ID, "OFF", "projector_switch_on")
+            self.send_actuator_command(ACT_PROJECTOR_ID, "ON", "projector_switch_on")
+        else:
+            self.log("Chave do projetor desligada: acendendo luzes e desligando projetor")
+            self.send_actuator_command(ACT_LIGHT_ID, "ON", "projector_switch_off")
+            self.send_actuator_command(ACT_PROJECTOR_ID, "OFF", "projector_switch_off")
+
+        ack_message = build_message(
+            message_type=MESSAGE_ACK,
+            source_id=MANAGER_ID,
+            source_type=SOURCE_TYPE_MANAGER,
+            target_id=message["source_id"],
+            payload={
+                "status": "projector_switch_received",
+                "projector_switch_on": projector_switch_on,
             },
         )
         self.send_and_log(client_socket, ack_message)

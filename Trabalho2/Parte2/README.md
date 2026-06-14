@@ -54,9 +54,10 @@ Blocos criados:
 - regra de presenca detectada ligando iluminacao e ar-condicionado;
 - regra de ausencia prolongada desligando iluminacao, projetor e
   ar-condicionado.
+- chave ON/OFF do projetor controlando iluminacao e projetor.
 
-Os processos executaveis do leitor de cartao, chave do projetor e
-cliente/professor serao adicionados nos proximos blocos.
+Os processos executaveis do leitor de cartao e cliente/professor serao
+adicionados nos proximos blocos.
 
 ## Executar processos atuais
 
@@ -150,6 +151,31 @@ escolha no sensor:
 Apos 15 segundos sem nova presenca, o Gerenciador deve enviar
 `ACTUATOR_COMMAND` com `command=OFF` para `ACT_LIGHT_01`, `ACT_PROJECTOR_01` e
 `ACT_AC_01`.
+
+Para testar a chave do projetor, mantenha o Gerenciador, o atuador de
+iluminacao e o atuador do projetor em execucao. Em outro terminal, rode:
+
+```sh
+python -m smartroom.sensors.chave_projetor
+```
+
+No menu da chave, escolha:
+
+```text
+1 - Ligar chave do projetor
+```
+
+O Gerenciador deve apagar a iluminacao (`ACT_LIGHT_01 OFF`) e ligar o projetor
+(`ACT_PROJECTOR_01 ON`).
+
+Depois escolha:
+
+```text
+2 - Desligar chave do projetor
+```
+
+O Gerenciador deve ligar a iluminacao (`ACT_LIGHT_01 ON`) e desligar o projetor
+(`ACT_PROJECTOR_01 OFF`).
 
 ## Prototipo QR opcional
 
