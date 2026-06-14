@@ -1,1 +1,1 @@
-"""Smart classroom socket application for SSC0142."""
+"""Aplicacao de sala inteligente por sockets para SSC0142."""

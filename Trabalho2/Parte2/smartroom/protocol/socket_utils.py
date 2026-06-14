@@ -1,4 +1,4 @@
-"""Socket helpers for newline-delimited JSON protocol messages."""
+"""Funcoes de socket para mensagens JSON delimitadas por quebra de linha."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ from .message import MessageValidationError, validate_message
 
 
 class ProtocolSocketError(RuntimeError):
-    """Raised when a socket payload cannot be parsed as a protocol message."""
+    """Erro gerado quando o payload do socket nao pode ser lido como protocolo."""
 
 
 class ConnectionClosed(ProtocolSocketError):
-    """Raised when the peer closes the TCP connection."""
+    """Erro gerado quando o par fecha a conexao TCP."""
 
 
 def send_message(sock: socket.socket, message: dict[str, Any]) -> None:
-    """Send one validated JSON message terminated by a newline."""
+    """Envia uma mensagem JSON validada e terminada por quebra de linha."""
 
     try:
         validate_message(message)
@@ -31,10 +31,10 @@ def send_message(sock: socket.socket, message: dict[str, Any]) -> None:
 
 
 def receive_message(sock: socket.socket, buffer: bytearray | None = None) -> dict[str, Any]:
-    """Receive one JSON message terminated by a newline.
+    """Recebe uma mensagem JSON terminada por quebra de linha.
 
-    For repeated reads on the same socket, pass the same bytearray buffer or
-    use SocketMessageReader so bytes after the newline are preserved.
+    Para leituras repetidas no mesmo socket, passe o mesmo buffer bytearray ou
+    use SocketMessageReader para preservar bytes apos a quebra de linha.
     """
 
     read_buffer = buffer if buffer is not None else bytearray()
@@ -42,10 +42,10 @@ def receive_message(sock: socket.socket, buffer: bytearray | None = None) -> dic
     while b"\n" not in read_buffer:
         chunk = sock.recv(SOCKET_BUFFER_SIZE)
         if not chunk:
-            raise ConnectionClosed("connection closed by peer")
+            raise ConnectionClosed("conexao fechada pelo par")
         read_buffer.extend(chunk)
         if len(read_buffer) > MAX_MESSAGE_BYTES:
-            raise ProtocolSocketError("message exceeds maximum size")
+            raise ProtocolSocketError("mensagem excede o tamanho maximo")
 
     line, _, remaining = read_buffer.partition(b"\n")
     read_buffer[:] = remaining
@@ -56,7 +56,7 @@ def receive_message(sock: socket.socket, buffer: bytearray | None = None) -> dic
     try:
         message = json.loads(line.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ProtocolSocketError(f"invalid JSON message: {exc}") from exc
+        raise ProtocolSocketError(f"mensagem JSON invalida: {exc}") from exc
 
     try:
         validate_message(message)
@@ -67,7 +67,7 @@ def receive_message(sock: socket.socket, buffer: bytearray | None = None) -> dic
 
 
 class SocketMessageReader:
-    """Stateful reader that preserves partial data between TCP reads."""
+    """Leitor com estado que preserva dados parciais entre leituras TCP."""
 
     def __init__(self, sock: socket.socket):
         self.sock = sock

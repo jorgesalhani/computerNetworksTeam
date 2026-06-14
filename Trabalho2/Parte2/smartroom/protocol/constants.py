@@ -1,4 +1,4 @@
-"""Constants for the SMARTROOM/1.0 application protocol."""
+"""Constantes do protocolo de aplicacao SMARTROOM/1.0."""
 
 PROTOCOL_ID = "SMARTROOM/1.0"
 

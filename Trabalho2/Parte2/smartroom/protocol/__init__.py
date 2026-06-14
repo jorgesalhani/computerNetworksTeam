@@ -1,4 +1,4 @@
-"""Shared SMARTROOM/1.0 protocol helpers."""
+"""Funcoes compartilhadas do protocolo SMARTROOM/1.0."""
 
 from .constants import PROTOCOL_ID
 from .message import MessageValidationError, build_message, current_timestamp, validate_message

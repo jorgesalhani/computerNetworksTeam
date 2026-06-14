@@ -42,15 +42,30 @@ descrito em [`smartroom/docs/protocolo.md`](smartroom/docs/protocolo.md).
 
 ## Estado atual da implementacao
 
-Bloco inicial criado:
+Blocos criados:
 
 - constantes do protocolo;
 - construcao e validacao de mensagens;
 - envio e recebimento de JSON por TCP com delimitador `\n`;
-- documentacao do protocolo.
+- documentacao do protocolo;
+- Gerenciador TCP minimo com registro `HELLO`/`ACK`.
 
-Os processos executaveis do Gerenciador, sensores, atuadores e cliente serao
-adicionados nos proximos blocos.
+Os processos executaveis dos sensores, atuadores e cliente serao adicionados nos
+proximos blocos.
+
+## Executar Gerenciador
+
+A partir da pasta `Trabalho2/Parte2`, execute:
+
+```sh
+python -m smartroom.manager.gerenciador
+```
+
+Tambem e possivel configurar host e porta:
+
+```sh
+python -m smartroom.manager.gerenciador --host 127.0.0.1 --port 5050
+```
 
 ## Prototipo QR opcional
 

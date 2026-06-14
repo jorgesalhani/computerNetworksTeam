@@ -1,4 +1,4 @@
-"""Message construction and validation for SMARTROOM/1.0."""
+"""Construcao e validacao de mensagens SMARTROOM/1.0."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ REQUIRED_FIELDS = (
 
 
 class MessageValidationError(ValueError):
-    """Raised when a protocol message is malformed."""
+    """Erro gerado quando uma mensagem do protocolo esta malformada."""
 
 
 def current_timestamp() -> str:
-    """Return a readable ISO-8601 timestamp without microseconds."""
+    """Retorna um timestamp ISO-8601 legivel, sem microssegundos."""
 
     return datetime.now().replace(microsecond=0).isoformat()
 
@@ -36,7 +36,7 @@ def build_message(
     payload: dict[str, Any] | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
-    """Build and validate a protocol message."""
+    """Monta e valida uma mensagem do protocolo."""
 
     message = {
         "protocol_id": PROTOCOL_ID,
@@ -52,29 +52,29 @@ def build_message(
 
 
 def validate_message(message: Any) -> bool:
-    """Validate the common SMARTROOM/1.0 header and payload shape."""
+    """Valida o header comum e a estrutura do payload SMARTROOM/1.0."""
 
     if not isinstance(message, dict):
-        raise MessageValidationError("message must be a JSON object")
+        raise MessageValidationError("mensagem deve ser um objeto JSON")
 
     missing_fields = [field for field in REQUIRED_FIELDS if field not in message]
     if missing_fields:
-        raise MessageValidationError(f"missing required fields: {', '.join(missing_fields)}")
+        raise MessageValidationError(f"campos obrigatorios ausentes: {', '.join(missing_fields)}")
 
     if message["protocol_id"] != PROTOCOL_ID:
-        raise MessageValidationError(f"invalid protocol_id: {message['protocol_id']!r}")
+        raise MessageValidationError(f"protocol_id invalido: {message['protocol_id']!r}")
 
     if message["message_type"] not in MESSAGE_TYPES:
-        raise MessageValidationError(f"invalid message_type: {message['message_type']!r}")
+        raise MessageValidationError(f"message_type invalido: {message['message_type']!r}")
 
     if message["source_type"] not in SOURCE_TYPES:
-        raise MessageValidationError(f"invalid source_type: {message['source_type']!r}")
+        raise MessageValidationError(f"source_type invalido: {message['source_type']!r}")
 
     for field in ("source_id", "target_id", "timestamp"):
         if not isinstance(message[field], str) or not message[field].strip():
-            raise MessageValidationError(f"{field} must be a non-empty string")
+            raise MessageValidationError(f"{field} deve ser uma string nao vazia")
 
     if not isinstance(message["payload"], dict):
-        raise MessageValidationError("payload must be a JSON object")
+        raise MessageValidationError("payload deve ser um objeto JSON")
 
     return True
