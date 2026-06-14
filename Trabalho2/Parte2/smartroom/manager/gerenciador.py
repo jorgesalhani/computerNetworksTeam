@@ -11,6 +11,7 @@ import json
 import socket
 import sys
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,8 +23,10 @@ from smartroom.protocol.constants import (  # noqa: E402
     ACT_AC_ID,
     ACT_LIGHT_ID,
     ACT_PROJECTOR_ID,
+    DEFAULT_ABSENCE_TIMEOUT_SECONDS,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    DEMO_ABSENCE_TIMEOUT_SECONDS,
     MANAGER_ID,
     MESSAGE_ACTUATOR_COMMAND,
     MESSAGE_ACK,
@@ -55,13 +58,26 @@ class ConnectedComponent:
 class SmartRoomManager:
     """Servidor TCP principal dos componentes da sala inteligente."""
 
-    def __init__(self, host: str, port: int, manual_mode: bool = False):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        manual_mode: bool = False,
+        demo_mode: bool = False,
+    ):
         self.host = host
         self.port = port
         self.manual_mode = manual_mode
+        self.demo_mode = demo_mode
+        self.absence_timeout_seconds = (
+            DEMO_ABSENCE_TIMEOUT_SECONDS if demo_mode else DEFAULT_ABSENCE_TIMEOUT_SECONDS
+        )
         self.components: dict[str, ConnectedComponent] = {}
         self.components_lock = threading.Lock()
         self.presence_detected = False
+        self.absence_started_at: float | None = None
+        self.absence_timer: threading.Timer | None = None
+        self.absence_lock = threading.Lock()
         self.stop_event = threading.Event()
 
     def start(self) -> None:
@@ -74,6 +90,11 @@ class SmartRoomManager:
             server_socket.settimeout(1.0)
 
             self.log(f"Gerenciador escutando em {self.host}:{self.port}")
+            if self.demo_mode:
+                self.log(
+                    "Modo demo ativo: ausencia prolongada usa "
+                    f"{self.absence_timeout_seconds} segundos"
+                )
 
             try:
                 if self.manual_mode:
@@ -95,6 +116,7 @@ class SmartRoomManager:
                 self.log("Encerrando Gerenciador por interrupcao do usuario")
             finally:
                 self.stop_event.set()
+                self.cancel_absence_timer()
                 self.close_all_components()
 
     def start_manual_command_thread(self) -> None:
@@ -276,10 +298,11 @@ class SmartRoomManager:
 
         if presence_detected:
             self.log("Presenca detectada: ligando iluminacao e ar-condicionado")
+            self.cancel_absence_timer()
             self.send_actuator_command(ACT_LIGHT_ID, "ON", "presence_detected")
             self.send_actuator_command(ACT_AC_ID, "ON", "presence_detected")
         else:
-            self.log("Sala vazia informada pelo sensor; temporizador de ausencia sera implementado no proximo bloco")
+            self.start_absence_timer()
 
         ack_message = build_message(
             message_type=MESSAGE_ACK,
@@ -292,6 +315,53 @@ class SmartRoomManager:
             },
         )
         self.send_and_log(client_socket, ack_message)
+
+    def start_absence_timer(self) -> None:
+        """Inicia ou reinicia o temporizador de ausencia prolongada."""
+
+        with self.absence_lock:
+            self.absence_started_at = time.monotonic()
+            if self.absence_timer is not None:
+                self.absence_timer.cancel()
+
+            self.absence_timer = threading.Timer(
+                self.absence_timeout_seconds,
+                self.handle_absence_timeout,
+            )
+            self.absence_timer.daemon = True
+            self.absence_timer.start()
+
+        self.log(
+            "Sala vazia: temporizador de ausencia iniciado "
+            f"({self.absence_timeout_seconds} segundos)"
+        )
+
+    def cancel_absence_timer(self) -> None:
+        """Cancela o temporizador de ausencia quando ha presenca novamente."""
+
+        with self.absence_lock:
+            if self.absence_timer is not None:
+                self.absence_timer.cancel()
+            self.absence_timer = None
+            self.absence_started_at = None
+
+    def handle_absence_timeout(self) -> None:
+        """Desliga equipamentos apos ausencia prolongada."""
+
+        with self.absence_lock:
+            if self.presence_detected or self.absence_started_at is None:
+                return
+
+            elapsed = time.monotonic() - self.absence_started_at
+            if elapsed < self.absence_timeout_seconds:
+                return
+
+            self.absence_timer = None
+
+        self.log("Ausencia prolongada confirmada: desligando equipamentos")
+        self.send_actuator_command(ACT_LIGHT_ID, "OFF", "absence_timeout")
+        self.send_actuator_command(ACT_PROJECTOR_ID, "OFF", "absence_timeout")
+        self.send_actuator_command(ACT_AC_ID, "OFF", "absence_timeout")
 
     def register_component(
         self,
@@ -414,12 +484,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="habilita menu manual para enviar comandos aos atuadores",
     )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="usa 15 segundos para ausencia prolongada em vez de 15 minutos",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    manager = SmartRoomManager(host=args.host, port=args.port, manual_mode=args.manual)
+    manager = SmartRoomManager(
+        host=args.host,
+        port=args.port,
+        manual_mode=args.manual,
+        demo_mode=args.demo,
+    )
     manager.start()
 
 

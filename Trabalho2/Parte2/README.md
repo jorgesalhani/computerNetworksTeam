@@ -51,7 +51,9 @@ Blocos criados:
 - Gerenciador TCP minimo com registro `HELLO`/`ACK`;
 - atuadores de iluminacao, projetor e ar-condicionado conectando via sockets.
 - sensor de presenca enviando `PRESENCE_UPDATE`;
-- regra inicial de presenca detectada ligando iluminacao e ar-condicionado.
+- regra de presenca detectada ligando iluminacao e ar-condicionado;
+- regra de ausencia prolongada desligando iluminacao, projetor e
+  ar-condicionado.
 
 Os processos executaveis do leitor de cartao, chave do projetor e
 cliente/professor serao adicionados nos proximos blocos.
@@ -75,6 +77,19 @@ manual:
 
 ```sh
 python -m smartroom.manager.gerenciador --manual
+```
+
+Para demonstracao, use o modo demo. Nele, a ausencia prolongada usa 15 segundos
+em vez de 15 minutos:
+
+```sh
+python -m smartroom.manager.gerenciador --demo
+```
+
+Os modos podem ser combinados:
+
+```sh
+python -m smartroom.manager.gerenciador --manual --demo
 ```
 
 Com o modo manual ativo, o terminal do Gerenciador aceita:
@@ -123,9 +138,18 @@ No menu do sensor, escolha:
 ```
 
 O Gerenciador deve enviar `ACTUATOR_COMMAND` com `command=ON` para
-`ACT_LIGHT_01` e `ACT_AC_01`. A opcao `2 - Enviar sala vazia` ja envia
-`PRESENCE_UPDATE` com `presence_detected=false`, mas o temporizador de ausencia
-sera implementado no proximo bloco.
+`ACT_LIGHT_01` e `ACT_AC_01`.
+
+Para testar ausencia prolongada em modo demo, rode o Gerenciador com `--demo` e
+escolha no sensor:
+
+```text
+2 - Enviar sala vazia
+```
+
+Apos 15 segundos sem nova presenca, o Gerenciador deve enviar
+`ACTUATOR_COMMAND` com `command=OFF` para `ACT_LIGHT_01`, `ACT_PROJECTOR_01` e
+`ACT_AC_01`.
 
 ## Prototipo QR opcional
 
