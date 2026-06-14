@@ -30,6 +30,8 @@ from smartroom.protocol.constants import (  # noqa: E402
     MANAGER_ID,
     MESSAGE_ACTUATOR_COMMAND,
     MESSAGE_ACK,
+    MESSAGE_ATTENDANCE_REQUEST,
+    MESSAGE_ATTENDANCE_RESPONSE,
     MESSAGE_ERROR,
     MESSAGE_HELLO,
     MESSAGE_PRESENCE_UPDATE,
@@ -294,6 +296,10 @@ class SmartRoomManager:
             self.handle_student_checkin(message, client_socket)
             return
 
+        if message_type == MESSAGE_ATTENDANCE_REQUEST:
+            self.handle_attendance_request(message, client_socket)
+            return
+
         self.send_error(
             client_socket,
             target_id=message["source_id"],
@@ -336,6 +342,31 @@ class SmartRoomManager:
             },
         )
         self.send_and_log(client_socket, ack_message)
+
+    def handle_attendance_request(self, message: dict[str, Any], client_socket: socket.socket) -> None:
+        """Responde ao cliente/professor com a lista de presenca."""
+
+        with self.attendance_lock:
+            students = [
+                {
+                    "student_number": record.student_number,
+                    "student_name": record.student_name,
+                }
+                for record in sorted(
+                    self.attendance.values(),
+                    key=lambda item: item.student_number,
+                )
+            ]
+
+        response = build_message(
+            message_type=MESSAGE_ATTENDANCE_RESPONSE,
+            source_id=MANAGER_ID,
+            source_type=SOURCE_TYPE_MANAGER,
+            target_id=message["source_id"],
+            payload={"students": students},
+        )
+        self.log(f"Enviando lista de presenca com {len(students)} aluno(s)")
+        self.send_and_log(client_socket, response)
 
     def handle_student_checkin(self, message: dict[str, Any], client_socket: socket.socket) -> None:
         """Registra presenca de aluno enviada pelo leitor de cartao."""

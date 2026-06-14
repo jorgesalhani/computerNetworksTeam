@@ -56,8 +56,10 @@ Blocos criados:
   ar-condicionado.
 - chave ON/OFF do projetor controlando iluminacao e projetor.
 - leitor de cartao registrando presenca de alunos sem duplicidade.
+- cliente/professor consultando a lista de presenca.
 
-O processo executavel do cliente/professor sera adicionado no proximo bloco.
+Os proximos blocos tratarao o desligamento geral as 23h e a documentacao final
+da demonstracao.
 
 ## Executar processos atuais
 
@@ -192,6 +194,21 @@ No menu do leitor, escolha:
 O Gerenciador deve registrar os alunos `001`, `002` e `003`. Se o mesmo aluno
 for enviado novamente, o Gerenciador responde `student_already_registered` e nao
 duplica o registro.
+
+Para testar o cliente/professor depois de registrar alunos, rode:
+
+```sh
+python -m smartroom.client.cliente_professor
+```
+
+No menu do cliente, escolha:
+
+```text
+1 - Solicitar lista de presenca
+```
+
+O Gerenciador deve responder com `ATTENDANCE_RESPONSE`, e o cliente deve
+imprimir os alunos registrados.
 
 ## Prototipo QR opcional
 
