@@ -1,38 +1,47 @@
 @startuml
 
-title Apagar as luzes e ligar projetor
+title Apagar luzes e ligar projetor
 
-control sensor
-participant gerenciador
-control atuador
+control "Chave do projetor" as projector_switch
+participant "Gerenciador" as manager
+control "ACT_LIGHT_01" as light
+control "ACT_PROJECTOR_01" as projector
 
-sensor -> gerenciador : movie_mode()
-activate gerenciador
-note over sensor
-  DATA:
-  - modo_projetor = 1
+projector_switch -> manager : PROJECTOR_SWITCH
+activate manager
+note over projector_switch
+  payload:
+  {
+    "projector_switch_on": true
+  }
 end note
 
-gerenciador -> atuador : lights_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_iluminacao = 0
+manager -> light : ACTUATOR_COMMAND
+activate light
+note right of light
+  payload:
+  {
+    "actuator_id": "ACT_LIGHT_01",
+    "command": "OFF",
+    "reason": "projector_switch_on"
+  }
 end note
+light --> manager : ACK
+deactivate light
 
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : projetor_on()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_projetor = 1
+manager -> projector : ACTUATOR_COMMAND
+activate projector
+note right of projector
+  payload:
+  {
+    "actuator_id": "ACT_PROJECTOR_01",
+    "command": "ON",
+    "reason": "projector_switch_on"
+  }
 end note
+projector --> manager : ACK
+deactivate projector
 
-gerenciador <- atuador
-deactivate atuador
-deactivate gerenciador
-
+deactivate manager
 
 @enduml

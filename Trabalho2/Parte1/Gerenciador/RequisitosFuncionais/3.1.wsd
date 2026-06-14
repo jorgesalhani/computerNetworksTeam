@@ -1,56 +1,51 @@
 @startuml
 
-title Aceitar conexão
+title Aceitar conexao de componente
 
-control componente
-participant gerenciador
-database db
+control "Componente" as component
+participant "Gerenciador" as manager
+database "component_registry" as registry
 
-componente -> gerenciador : connect()
-activate gerenciador
-note over componente
-  HEADER
-  - id_componente: int
-  - tipo_componente : int
+component -> manager : HELLO
+activate manager
+note over component
+  protocol_id: SMARTROOM/1.0
+  message_type: HELLO
+  source_id: identificador unico
+  source_type: SENSOR | ACTUATOR | CLIENT
+  payload.component_role: funcao do componente
 end note
 
-alt Id não reconhecido
-  gerenciador -> gerenciador : Falha de id_componente
+manager -> registry : validar source_id, source_type e component_role
+activate registry
 
-else Tipo não reconhecido
-  gerenciador -> gerenciador : Falha de tipo_componente
-  deactivate gerenciador
+alt source_id nao cadastrado
+  registry --> manager : nao encontrado
+  deactivate registry
+  manager --> component : ERROR
+  note right of manager
+    error_code: INVALID_COMPONENT
+    details: source_id nao cadastrado
+  end note
 
-else Aceito
+else source_type ou component_role incompativel
+  registry --> manager : componente incompativel
+  deactivate registry
+  manager --> component : ERROR
+  note right of manager
+    error_code: INVALID_COMPONENT
+    details: tipo ou papel incompativel
+  end note
+
+else componente aceito
+  registry --> manager : componente valido
+  deactivate registry
+  manager --> component : ACK
+  note right of manager
+    status: registered
+  end note
 end
 
-gerenciador -> db : GET componente/{id}/id
-activate gerenciador
-activate db
-note right of db
-  Obter componente por ID
-end note
-
-alt Id não cadastrado
-  gerenciador <- db : [null]
-
-  gerenciador -> gerenciador : Componente não cadastrada
-
-else Tipo imcompatível
-  gerenciador <- db : [component]
-
-  gerenciador -> gerenciador : Incompatibilidade entre tipo e id
-  deactivate gerenciador
-
-else Aceito
-end
-
-gerenciador <- db : [componente]
-deactivate db
-activate gerenciador
-
-gerenciador -> gerenciador : [Ok!]
-deactivate gerenciador
-
+deactivate manager
 
 @enduml

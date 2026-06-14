@@ -1,33 +1,65 @@
 # Sensores
 
-## Protocolo
+Os sensores se conectam ao Gerenciador por socket TCP e se identificam com uma
+mensagem `HELLO` do protocolo `SMARTROOM/1.0`.
 
-HEADER | DATA 
+Toda mensagem usa o header comum:
 
-HEADER: 
-1. **id_sensor**: identificador da componente
-2. **tipo_componente**: tipo da componente
-3. **aceitar_sinal**: flag (0|1) para que o sinal recebido seja efetivamente reconhecido como um comando
+```json
+{
+  "protocol_id": "SMARTROOM/1.0",
+  "message_type": "...",
+  "source_id": "...",
+  "source_type": "SENSOR",
+  "target_id": "MANAGER",
+  "timestamp": "...",
+  "payload": {}
+}
+```
 
-> **Hipótese:**
-> 
-> Existe uma lista com cada componente previamente cadastrada
+## Sensor de presenca
 
-DATA:
-1. dados (a depender do sensor)
+Envia `PRESENCE_UPDATE` com:
 
-## Presença de pessoas
+```json
+{
+  "presence_detected": true
+}
+```
 
-DATA:
-1. sala_vazia
+ou:
 
-## Leitor de cartão de alunas
+```json
+{
+  "presence_detected": false
+}
+```
 
-DATA:
-1. nome_aluna
-2. numero_aluna
+## Leitor de cartao
+
+Envia `STUDENT_CHECKIN` com:
+
+```json
+{
+  "student_number": "001",
+  "student_name": "Aluno 1"
+}
+```
 
 ## Chave ON/OFF do projetor
 
-DATA:
-1. modo_projetor
+Envia `PROJECTOR_SWITCH` com:
+
+```json
+{
+  "projector_switch_on": true
+}
+```
+
+ou:
+
+```json
+{
+  "projector_switch_on": false
+}
+```

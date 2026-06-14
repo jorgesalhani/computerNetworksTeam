@@ -1,32 +1,63 @@
 # Atuadores
 
-## Protocolo
+Os atuadores se conectam ao Gerenciador por socket TCP e se identificam com uma
+mensagem `HELLO` do protocolo `SMARTROOM/1.0`.
 
-HEADER | DATA 
+Toda mensagem usa o header comum:
 
-HEADER: 
-1. **id_sensor**: identificador da componente
-2. **tipo_componente**: tipo da componente
-3. **aceitar_sinal**: flag (0|1) para que o sinal recebido seja efetivamente reconhecido como um comando
+```json
+{
+  "protocol_id": "SMARTROOM/1.0",
+  "message_type": "...",
+  "source_id": "...",
+  "source_type": "ACTUATOR",
+  "target_id": "MANAGER",
+  "timestamp": "...",
+  "payload": {}
+}
+```
 
-> **Hipótese:**
-> 
-> Existe uma lista com cada componente previamente cadastrada
+Depois do registro, cada atuador aguarda mensagens `ACTUATOR_COMMAND` enviadas
+pelo Gerenciador.
 
-DATA:
-1. dados (a depender do sensor)
+## Sistema de iluminacao
 
-## Sistema de iluminação
+Identificador: `ACT_LIGHT_01`.
 
-DATA:
-1. modo_iluminacao
+Payload esperado em comandos:
+
+```json
+{
+  "actuator_id": "ACT_LIGHT_01",
+  "command": "ON",
+  "reason": "presence_detected"
+}
+```
 
 ## Alimentador do projetor
 
-DATA:
-1. modo_projetor
+Identificador: `ACT_PROJECTOR_01`.
+
+Payload esperado em comandos:
+
+```json
+{
+  "actuator_id": "ACT_PROJECTOR_01",
+  "command": "OFF",
+  "reason": "projector_switch_off"
+}
+```
 
 ## Alimentador do ar-condicionado
 
-DATA:
-1. modo_ar_condicionado
+Identificador: `ACT_AC_01`.
+
+Payload esperado em comandos:
+
+```json
+{
+  "actuator_id": "ACT_AC_01",
+  "command": "ON",
+  "reason": "presence_detected"
+}
+```

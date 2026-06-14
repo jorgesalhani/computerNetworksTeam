@@ -1,10 +1,12 @@
 @startuml
 
-title Database: Lista de presença
+title Armazenamento interno: lista de presenca
 
-entity "attend_list" {
-  +<<PK>> numero_aluna: int
-  +<<PK>> data_hora: datetime
+entity "lista_presenca" {
+  +<<PK>> student_number: string
   --
-  nome_aluna: varchar
+  student_name: string
+  checkin_timestamp: datetime
 }
+
+@enduml

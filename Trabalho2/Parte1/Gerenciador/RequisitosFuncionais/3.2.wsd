@@ -1,45 +1,47 @@
 @startuml
 
-title Ligar iluminação e ar-condicionado
+title Ligar iluminacao e ar-condicionado
 
-control sensor
-participant gerenciador
-control atuador
+control "Sensor de presenca" as presence_sensor
+participant "Gerenciador" as manager
+control "ACT_LIGHT_01" as light
+control "ACT_AC_01" as ac
 
-sensor -> gerenciador : people_arrive()
-activate gerenciador
-note over of sensor
-  DATA:
-  - sala_vazia: bool
+presence_sensor -> manager : PRESENCE_UPDATE
+activate manager
+note over presence_sensor
+  payload:
+  {
+    "presence_detected": true
+  }
 end note
 
-alt sala_vazia = True
-  gerenciador -> gerenciador : [Ok!]
-  deactivate gerenciador
-
-else sala_vazia = False
-end
-
-gerenciador -> atuador : lights_on()
-activate gerenciador
-activate atuador
-note right of atuador
-  DATA:
-  - modo_iluminacao = 1
+manager -> light : ACTUATOR_COMMAND
+activate light
+note right of light
+  payload:
+  {
+    "actuator_id": "ACT_LIGHT_01",
+    "command": "ON",
+    "reason": "presence_detected"
+  }
 end note
+light --> manager : ACK
+deactivate light
 
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : air_cond_on()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_ar_condicionado = 1
+manager -> ac : ACTUATOR_COMMAND
+activate ac
+note right of ac
+  payload:
+  {
+    "actuator_id": "ACT_AC_01",
+    "command": "ON",
+    "reason": "presence_detected"
+  }
 end note
+ac --> manager : ACK
+deactivate ac
 
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-deactivate gerenciador
+deactivate manager
 
 @enduml

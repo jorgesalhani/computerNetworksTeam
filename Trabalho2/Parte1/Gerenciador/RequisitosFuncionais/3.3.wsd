@@ -1,65 +1,71 @@
 @startuml
 
-title Desligar iluminação, projetor e\n ar-condicionado
+title Desligar equipamentos apos ausencia prolongada
 
-control sensor
-participant gerenciador
-control atuador
+control "Sensor de presenca" as presence_sensor
+participant "Gerenciador" as manager
+control "ACT_LIGHT_01" as light
+control "ACT_PROJECTOR_01" as projector
+control "ACT_AC_01" as ac
 
-sensor -> gerenciador : no_people_here()
-activate gerenciador
-note over of sensor
-  DATA:
-  - sala_vazia: 1
+presence_sensor -> manager : PRESENCE_UPDATE
+activate manager
+note over presence_sensor
+  payload:
+  {
+    "presence_detected": false
+  }
 end note
 
-alt sala_vazia = False
-  gerenciador -> gerenciador : reset_countdown()
-  note right of gerenciador
-    last_detection = now()
+manager -> manager : absence_started_at = now()
+note right of manager
+  No modo normal: 15 minutos.
+  No modo demo: 15 segundos.
+end note
+
+alt now() - absence_started_at < 15min
+  manager -> manager : manter estados atuais
+else now() - absence_started_at >= 15min
+  manager -> light : ACTUATOR_COMMAND
+  activate light
+  note right of light
+    payload:
+    {
+      "actuator_id": "ACT_LIGHT_01",
+      "command": "OFF",
+      "reason": "absence_timeout"
+    }
   end note
-  
-  gerenciador -> gerenciador : [Ok!]
+  light --> manager : ACK
+  deactivate light
 
-else sala_vazia = True
+  manager -> projector : ACTUATOR_COMMAND
+  activate projector
+  note right of projector
+    payload:
+    {
+      "actuator_id": "ACT_PROJECTOR_01",
+      "command": "OFF",
+      "reason": "absence_timeout"
+    }
+  end note
+  projector --> manager : ACK
+  deactivate projector
+
+  manager -> ac : ACTUATOR_COMMAND
+  activate ac
+  note right of ac
+    payload:
+    {
+      "actuator_id": "ACT_AC_01",
+      "command": "OFF",
+      "reason": "absence_timeout"
+    }
+  end note
+  ac --> manager : ACK
+  deactivate ac
 end
 
-alt last_detection - now() < 15min
-  gerenciador -> gerenciador : [Ok!]
-  deactivate gerenciador
-else >= 15 min
-end
-
-gerenciador -> atuador : lights_off()
-activate atuador
-activate gerenciador
-note right of atuador
-  DATA:
-  - modo_iluminacao = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : projetor_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_projetor = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : air_cond_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_ar_condicionado = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-deactivate gerenciador
+deactivate manager
 
 @enduml

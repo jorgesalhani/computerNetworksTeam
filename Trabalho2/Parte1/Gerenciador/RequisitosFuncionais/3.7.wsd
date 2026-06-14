@@ -1,51 +1,58 @@
 @startuml
 
-title Acender as luzes e desligar projetor
+title Desligamento geral as 23h
 
-participant gerenciador
-control atuador
+participant "Gerenciador" as manager
+control "ACT_LIGHT_01" as light
+control "ACT_PROJECTOR_01" as projector
+control "ACT_AC_01" as ac
 
-alt now() < 23h
-  gerenciador -> gerenciador : null
-  activate gerenciador
-  deactivate gerenciador
+alt now().hour < 23
+  manager -> manager : aguardar proxima verificacao
+else now().hour >= 23
+  manager -> manager : shutdown_all_at_23h()
+  activate manager
 
-else now() >= 23h
+  manager -> light : ACTUATOR_COMMAND
+  activate light
+  note right of light
+    payload:
+    {
+      "actuator_id": "ACT_LIGHT_01",
+      "command": "OFF",
+      "reason": "scheduled_shutdown"
+    }
+  end note
+  light --> manager : ACK
+  deactivate light
+
+  manager -> projector : ACTUATOR_COMMAND
+  activate projector
+  note right of projector
+    payload:
+    {
+      "actuator_id": "ACT_PROJECTOR_01",
+      "command": "OFF",
+      "reason": "scheduled_shutdown"
+    }
+  end note
+  projector --> manager : ACK
+  deactivate projector
+
+  manager -> ac : ACTUATOR_COMMAND
+  activate ac
+  note right of ac
+    payload:
+    {
+      "actuator_id": "ACT_AC_01",
+      "command": "OFF",
+      "reason": "scheduled_shutdown"
+    }
+  end note
+  ac --> manager : ACK
+  deactivate ac
+
+  deactivate manager
 end
-
-gerenciador -> gerenciador: midnight_gospel()
-activate gerenciador
-
-gerenciador -> atuador : lights_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_iluminacao = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : projetor_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_projetor = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-
-gerenciador -> atuador : air_cond_off()
-activate atuador
-note right of atuador
-  DATA:
-  - modo_ar_condicionado = 0
-end note
-
-gerenciador <- atuador : [Ok!]
-deactivate atuador
-deactivate gerenciador
-
 
 @enduml

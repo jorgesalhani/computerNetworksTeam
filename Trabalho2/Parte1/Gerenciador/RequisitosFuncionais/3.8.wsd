@@ -1,30 +1,35 @@
 @startuml
 
-title Obter lista de alunas
+title Obter lista de presenca
 
-actor cliente
-participant gerenciador
-database db
+actor "Cliente/professor" as teacher_client
+participant "Gerenciador" as manager
+database "lista_presenca" as attendance_list
 
-cliente -> gerenciador : check_attend_list()
-activate gerenciador
-note over cliente
-  DATA:
-  - data_consulta: yyyy-mm-dd
+teacher_client -> manager : ATTENDANCE_REQUEST
+activate manager
+note over teacher_client
+  payload: {}
 end note
 
-gerenciador -> db : GET /attend-list?data-consulta={data_consulta}
-activate db
-note right of gerenciador
-  SELECT * FROM attend_list
-  WHERE data_hora::DATE = $data_consulta
+manager -> attendance_list : obter lista de presenca
+activate attendance_list
+attendance_list --> manager : students
+deactivate attendance_list
+
+manager --> teacher_client : ATTENDANCE_RESPONSE
+note right of manager
+  payload:
+  {
+    "students": [
+      {
+        "student_number": "001",
+        "student_name": "Aluno 1"
+      }
+    ]
+  }
 end note
 
-gerenciador <- db : [attend_list]
-deactivate db
-
-gerenciador -> gerenciador : show_attend_list()
-deactivate gerenciador
-
+deactivate manager
 
 @enduml
