@@ -48,12 +48,13 @@ Blocos criados:
 - construcao e validacao de mensagens;
 - envio e recebimento de JSON por TCP com delimitador `\n`;
 - documentacao do protocolo;
-- Gerenciador TCP minimo com registro `HELLO`/`ACK`.
+- Gerenciador TCP minimo com registro `HELLO`/`ACK`;
+- atuadores de iluminacao, projetor e ar-condicionado conectando via sockets.
 
-Os processos executaveis dos sensores, atuadores e cliente serao adicionados nos
+Os processos executaveis dos sensores e cliente/professor serao adicionados nos
 proximos blocos.
 
-## Executar Gerenciador
+## Executar processos atuais
 
 A partir da pasta `Trabalho2/Parte2`, execute:
 
@@ -66,6 +67,24 @@ Tambem e possivel configurar host e porta:
 ```sh
 python -m smartroom.manager.gerenciador --host 127.0.0.1 --port 5050
 ```
+
+Em outros terminais, execute os atuadores:
+
+```sh
+python -m smartroom.actuators.atuador_iluminacao
+```
+
+```sh
+python -m smartroom.actuators.atuador_projetor
+```
+
+```sh
+python -m smartroom.actuators.atuador_ar_condicionado
+```
+
+Cada atuador envia `HELLO`, recebe `ACK` e fica aguardando `ACTUATOR_COMMAND`.
+Neste bloco, o Gerenciador ainda nao envia comandos automaticamente; isso sera
+implementado junto com as regras dos sensores nos proximos blocos.
 
 ## Prototipo QR opcional
 
