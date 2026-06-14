@@ -29,6 +29,7 @@ from smartroom.protocol.constants import (  # noqa: E402
     MESSAGE_ACK,
     MESSAGE_ERROR,
     MESSAGE_HELLO,
+    MESSAGE_PRESENCE_UPDATE,
     SOURCE_TYPE_MANAGER,
 )
 from smartroom.protocol.message import build_message  # noqa: E402
@@ -60,6 +61,7 @@ class SmartRoomManager:
         self.manual_mode = manual_mode
         self.components: dict[str, ConnectedComponent] = {}
         self.components_lock = threading.Lock()
+        self.presence_detected = False
         self.stop_event = threading.Event()
 
     def start(self) -> None:
@@ -218,19 +220,7 @@ class SmartRoomManager:
             while not self.stop_event.is_set():
                 message = reader.receive()
                 self.log_message("RECEBIDA", message)
-                if message["message_type"] == MESSAGE_ACK:
-                    self.log(f"ACK recebido de {message['source_id']}: {message['payload']}")
-                    continue
-
-                self.send_error(
-                    client_socket,
-                    target_id=message["source_id"],
-                    error_code="MESSAGE_NOT_IMPLEMENTED",
-                    details=(
-                        "Gerenciador minimo registra componentes, mas as regras "
-                        "funcionais serao implementadas nos proximos blocos."
-                    ),
-                )
+                self.process_protocol_message(message, client_socket)
 
         except ConnectionClosed:
             self.log_disconnect(component_id, address)
@@ -247,6 +237,61 @@ class SmartRoomManager:
         finally:
             self.unregister_component(component_id)
             self.close_socket(client_socket)
+
+    def process_protocol_message(self, message: dict[str, Any], client_socket: socket.socket) -> None:
+        """Processa mensagens recebidas depois do registro HELLO/ACK."""
+
+        message_type = message["message_type"]
+
+        if message_type == MESSAGE_ACK:
+            self.log(f"ACK recebido de {message['source_id']}: {message['payload']}")
+            return
+
+        if message_type == MESSAGE_PRESENCE_UPDATE:
+            self.handle_presence_update(message, client_socket)
+            return
+
+        self.send_error(
+            client_socket,
+            target_id=message["source_id"],
+            error_code="MESSAGE_NOT_IMPLEMENTED",
+            details=f"Mensagem {message_type} ainda nao implementada no Gerenciador.",
+        )
+
+    def handle_presence_update(self, message: dict[str, Any], client_socket: socket.socket) -> None:
+        """Aplica a regra inicial do sensor de presenca."""
+
+        payload = message["payload"]
+        presence_detected = payload.get("presence_detected")
+        if not isinstance(presence_detected, bool):
+            self.send_error(
+                client_socket,
+                target_id=message["source_id"],
+                error_code="INVALID_PAYLOAD",
+                details="payload.presence_detected deve ser booleano",
+            )
+            return
+
+        self.presence_detected = presence_detected
+
+        if presence_detected:
+            self.log("Presenca detectada: ligando iluminacao e ar-condicionado")
+            self.send_actuator_command(ACT_LIGHT_ID, "ON", "presence_detected")
+            self.send_actuator_command(ACT_AC_ID, "ON", "presence_detected")
+        else:
+            self.log("Sala vazia informada pelo sensor; temporizador de ausencia sera implementado no proximo bloco")
+
+        ack_message = build_message(
+            message_type=MESSAGE_ACK,
+            source_id=MANAGER_ID,
+            source_type=SOURCE_TYPE_MANAGER,
+            target_id=message["source_id"],
+            payload={
+                "status": "presence_update_received",
+                "presence_detected": presence_detected,
+            },
+        )
+        self.send_and_log(client_socket, ack_message)
 
     def register_component(
         self,

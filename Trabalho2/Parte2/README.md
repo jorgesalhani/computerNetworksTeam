@@ -50,9 +50,11 @@ Blocos criados:
 - documentacao do protocolo;
 - Gerenciador TCP minimo com registro `HELLO`/`ACK`;
 - atuadores de iluminacao, projetor e ar-condicionado conectando via sockets.
+- sensor de presenca enviando `PRESENCE_UPDATE`;
+- regra inicial de presenca detectada ligando iluminacao e ar-condicionado.
 
-Os processos executaveis dos sensores e cliente/professor serao adicionados nos
-proximos blocos.
+Os processos executaveis do leitor de cartao, chave do projetor e
+cliente/professor serao adicionados nos proximos blocos.
 
 ## Executar processos atuais
 
@@ -106,6 +108,24 @@ Cada atuador envia `HELLO`, recebe `ACK` e fica aguardando `ACTUATOR_COMMAND`.
 O modo manual do Gerenciador permite enviar `ACTUATOR_COMMAND` para testar os
 estados `ON/OFF`. O envio automatico sera implementado junto com as regras dos
 sensores nos proximos blocos.
+
+Para testar a regra inicial de presenca, mantenha o Gerenciador, o atuador de
+iluminacao e o atuador do ar-condicionado em execucao. Em outro terminal, rode:
+
+```sh
+python -m smartroom.sensors.sensor_presenca
+```
+
+No menu do sensor, escolha:
+
+```text
+1 - Enviar presenca detectada
+```
+
+O Gerenciador deve enviar `ACTUATOR_COMMAND` com `command=ON` para
+`ACT_LIGHT_01` e `ACT_AC_01`. A opcao `2 - Enviar sala vazia` ja envia
+`PRESENCE_UPDATE` com `presence_detected=false`, mas o temporizador de ausencia
+sera implementado no proximo bloco.
 
 ## Prototipo QR opcional
 
