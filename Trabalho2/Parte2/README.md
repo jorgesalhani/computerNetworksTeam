@@ -55,9 +55,9 @@ Blocos criados:
 - regra de ausencia prolongada desligando iluminacao, projetor e
   ar-condicionado.
 - chave ON/OFF do projetor controlando iluminacao e projetor.
+- leitor de cartao registrando presenca de alunos sem duplicidade.
 
-Os processos executaveis do leitor de cartao e cliente/professor serao
-adicionados nos proximos blocos.
+O processo executavel do cliente/professor sera adicionado no proximo bloco.
 
 ## Executar processos atuais
 
@@ -176,6 +176,22 @@ Depois escolha:
 
 O Gerenciador deve ligar a iluminacao (`ACT_LIGHT_01 ON`) e desligar o projetor
 (`ACT_PROJECTOR_01 OFF`).
+
+Para testar o leitor de cartao, rode em outro terminal:
+
+```sh
+python -m smartroom.sensors.leitor_cartao
+```
+
+No menu do leitor, escolha:
+
+```text
+2 - Enviar 3 alunos de demonstracao
+```
+
+O Gerenciador deve registrar os alunos `001`, `002` e `003`. Se o mesmo aluno
+for enviado novamente, o Gerenciador responde `student_already_registered` e nao
+duplica o registro.
 
 ## Prototipo QR opcional
 

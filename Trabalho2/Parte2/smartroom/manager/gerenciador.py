@@ -34,6 +34,7 @@ from smartroom.protocol.constants import (  # noqa: E402
     MESSAGE_HELLO,
     MESSAGE_PRESENCE_UPDATE,
     MESSAGE_PROJECTOR_SWITCH,
+    MESSAGE_STUDENT_CHECKIN,
     SOURCE_TYPE_MANAGER,
 )
 from smartroom.protocol.message import build_message  # noqa: E402
@@ -54,6 +55,15 @@ class ConnectedComponent:
     component_role: str
     sock: socket.socket
     address: tuple[str, int]
+
+
+@dataclass
+class AttendanceRecord:
+    """Registro de presenca de um aluno."""
+
+    student_number: str
+    student_name: str
+    checkin_timestamp: str
 
 
 class SmartRoomManager:
@@ -79,6 +89,8 @@ class SmartRoomManager:
         self.absence_started_at: float | None = None
         self.absence_timer: threading.Timer | None = None
         self.absence_lock = threading.Lock()
+        self.attendance: dict[str, AttendanceRecord] = {}
+        self.attendance_lock = threading.Lock()
         self.stop_event = threading.Event()
 
     def start(self) -> None:
@@ -278,6 +290,10 @@ class SmartRoomManager:
             self.handle_projector_switch(message, client_socket)
             return
 
+        if message_type == MESSAGE_STUDENT_CHECKIN:
+            self.handle_student_checkin(message, client_socket)
+            return
+
         self.send_error(
             client_socket,
             target_id=message["source_id"],
@@ -317,6 +333,63 @@ class SmartRoomManager:
             payload={
                 "status": "presence_update_received",
                 "presence_detected": presence_detected,
+            },
+        )
+        self.send_and_log(client_socket, ack_message)
+
+    def handle_student_checkin(self, message: dict[str, Any], client_socket: socket.socket) -> None:
+        """Registra presenca de aluno enviada pelo leitor de cartao."""
+
+        payload = message["payload"]
+        student_number = payload.get("student_number")
+        student_name = payload.get("student_name")
+
+        if not isinstance(student_number, str) or not student_number.strip():
+            self.send_error(
+                client_socket,
+                target_id=message["source_id"],
+                error_code="INVALID_PAYLOAD",
+                details="payload.student_number deve ser uma string nao vazia",
+            )
+            return
+
+        if not isinstance(student_name, str) or not student_name.strip():
+            self.send_error(
+                client_socket,
+                target_id=message["source_id"],
+                error_code="INVALID_PAYLOAD",
+                details="payload.student_name deve ser uma string nao vazia",
+            )
+            return
+
+        student_number = student_number.strip()
+        student_name = student_name.strip()
+
+        with self.attendance_lock:
+            existing_record = self.attendance.get(student_number)
+            if existing_record is None:
+                self.attendance[student_number] = AttendanceRecord(
+                    student_number=student_number,
+                    student_name=student_name,
+                    checkin_timestamp=message["timestamp"],
+                )
+                status = "student_registered"
+                self.log(f"Presenca registrada: {student_number} - {student_name}")
+            else:
+                status = "student_already_registered"
+                self.log(
+                    "Presenca duplicada ignorada: "
+                    f"{existing_record.student_number} - {existing_record.student_name}"
+                )
+
+        ack_message = build_message(
+            message_type=MESSAGE_ACK,
+            source_id=MANAGER_ID,
+            source_type=SOURCE_TYPE_MANAGER,
+            target_id=message["source_id"],
+            payload={
+                "status": status,
+                "student_number": student_number,
             },
         )
         self.send_and_log(client_socket, ack_message)
